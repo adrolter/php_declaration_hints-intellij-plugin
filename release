@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -euC
+
+cd "$(dirname "$(readlink -f "$0")")"
+
+if [ $# -eq 0 ]; then
+    >&2 echo 'Version must be provided as first argument'
+    exit 1
+fi
+
+version=$1; shift
+
+if [ -z "$version" ]; then
+    >&2 echo 'Invalid version value'
+    exit 1
+fi
+
+# TODO: Can't be dirty!
+
+git tag "v${version}"
+
+export ORG_GRADLE_PROJECT_pluginReleaseVersion="$version"
+
+#./gradlew clean
+./gradlew buildPlugin
+
+cp -a build/distributions/php_declaration_hints-intellij-plugin{,-v${version}}.zip
+
+./gradlew runIde
+
