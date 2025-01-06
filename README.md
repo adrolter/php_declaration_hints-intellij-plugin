@@ -1,6 +1,6 @@
 ## PHP Declaration Hints IntelliJ Plugin
 
-Declaration/implementation completions for PHP class methods, driven by JSON configuration files.
+Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.
 
 Config files must be written to `<project>/.idea/phpDeclarationHints/<relative-php-file-path>.json`.
 
