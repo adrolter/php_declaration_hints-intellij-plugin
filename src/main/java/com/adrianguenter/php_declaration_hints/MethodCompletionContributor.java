@@ -44,7 +44,7 @@ public class MethodCompletionContributor
 
                         var file = element.getContainingFile();
                         var project = file.getProject();
-                        var cache = project.getService(ConfigCache.class);
+                        var configRepository = project.getService(ConfigRepository.class);
                         var templateManager = TemplateManager.getInstance(project);
 
                         var phpClass = PsiTreeUtil.getParentOfType(element, PhpClass.class);
@@ -75,7 +75,7 @@ public class MethodCompletionContributor
                             return;
                         }
 
-                        var config = cache.getPhpFileConfig(file.getVirtualFile());
+                        var config = configRepository.get(file.getVirtualFile());
                         if (config == null || !config.classes().containsKey(phpClass.getFQN())) {
                             return;
                         }
@@ -127,7 +127,7 @@ public class MethodCompletionContributor
                                                                     : ""
                                                     );
                                                 }
-                                        ).toList()
+                                        ).toList().toArray(new CharSequence[0])
                                 );
                             }
                             else {

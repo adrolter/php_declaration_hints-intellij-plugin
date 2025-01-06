@@ -8,6 +8,7 @@ E.g. `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Fo
 
 ```json
 {
+    "autoDelete": true,
     "classes" : {
         "\\Foo\\Bar": {
             "methodProviders" : {

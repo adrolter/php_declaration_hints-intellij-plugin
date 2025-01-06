@@ -12,7 +12,9 @@ public final class JsonConfigFileWatcher {
     public JsonConfigFileWatcher(
             Project project
     ) {
-        final var cache = project.getService(ConfigCache.class);
+        final var configRepository = project.getService(ConfigRepository.class);
+
+        configRepository.deleteInvalidJsonConfigFiles();
 
         project.getMessageBus().connect().subscribe(
                 VirtualFileManager.VFS_CHANGES,
@@ -26,12 +28,12 @@ public final class JsonConfigFileWatcher {
                             }
 
                             var filePath = file.getPath();
-                            if (!filePath.startsWith(cache.jsonConfigDirPath + "/")
+                            if (!filePath.startsWith(configRepository.jsonConfigDirPath + "/")
                                     || !filePath.endsWith(".php.json")) {
                                 continue;
                             }
 
-                            cache.invalidateJsonConfigFile(file);
+                            configRepository.invalidateCacheOfJsonConfigFile(file);
                         }
                     }
                 });
