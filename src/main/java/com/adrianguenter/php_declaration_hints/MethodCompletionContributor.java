@@ -86,6 +86,10 @@ public class MethodCompletionContributor
                             var methodName = methodProvider.getKey();
                             var methodConfig = methodProvider.getValue();
 
+                            if (phpClass.findOwnMethodByName(methodName) != null) {
+                                continue;
+                            }
+
                             var accessLevel = methodConfig.accessLevel() != null
                                     ? methodConfig.accessLevel()
                                     : PhpModifier.Access.PUBLIC;
