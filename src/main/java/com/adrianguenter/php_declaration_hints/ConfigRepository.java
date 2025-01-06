@@ -14,15 +14,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-@FunctionalInterface
-interface RecursiveJsonConfigFileDeletionHandler {
-    void apply(VirtualFile t, RecursiveJsonConfigFileDeletionHandler self);
-
-    default void call(VirtualFile t) {
-        this.apply(t, this);
-    }
-}
-
 @Service(Service.Level.PROJECT)
 final class ConfigRepository {
     public final String jsonConfigDirPath;
@@ -172,5 +163,14 @@ final class ConfigRepository {
         }
 
         return this.loadJsonConfigFile(jsonFile);
+    }
+
+    @FunctionalInterface
+    interface RecursiveJsonConfigFileDeletionHandler {
+        void apply(VirtualFile t, RecursiveJsonConfigFileDeletionHandler self);
+
+        default void call(VirtualFile t) {
+            this.apply(t, this);
+        }
     }
 }
