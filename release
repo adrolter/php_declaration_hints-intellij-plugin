@@ -18,7 +18,7 @@ fi
 
 # TODO: Can't be dirty!
 
-git tag "v${version}"
+git tag "v${version}" || [ "$(git name-rev --name-only --tags HEAD)" = "v${version}" ]
 
 export ORG_GRADLE_PROJECT_pluginReleaseVersion="$version"
 

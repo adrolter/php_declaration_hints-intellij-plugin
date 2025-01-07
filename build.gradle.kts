@@ -32,9 +32,9 @@ intellijPlatform {
     instrumentCode = true
     projectName = project.name
     pluginConfiguration {
-        version = providers.gradleProperty("pluginReleaseVersion")
-            .orElse("dev-${getGitCommitHash()}-${LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)}")
+        version = getVersion()
         changeNotes = getChangeNotes().ifEmpty { "Everything! ✨" }
+        description = getDescription()
     }
     signing {
         certificateChain = System.getenv("CERTIFICATE_CHAIN")
@@ -74,6 +74,22 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(providers.gradleProperty("javaVersion").get()))
     }
+}
+
+fun getVersion(): String {
+    return providers.gradleProperty("pluginReleaseVersion")
+        .getOrElse("dev-${getGitCommitHash()}-${LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)}")
+}
+
+fun getDescription(): String {
+    val version = getVersion()
+    val githubUrl = "https://github.com/adrolter/php_declaration_hints-intellij-plugin"
+
+    return """
+        Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.<br>
+        <br>
+        <a href="$githubUrl/blob/$version/README.md">README</a> | <a href="$githubUrl/blob/$version/LICENSE">LICENSE</a> | <a href="$githubUrl/issues">Issue Tracker</a> | <a href="$githubUrl/discussions">Discussions/Q&A</a> | <a href="$githubUrl">Source Code</a>
+        """
 }
 
 fun getGitCommitHash(): String {

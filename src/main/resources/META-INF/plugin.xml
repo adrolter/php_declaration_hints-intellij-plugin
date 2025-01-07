@@ -13,9 +13,9 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description><![CDATA[
-    Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.
-  ]]></description>
+    <!-- <description><![CDATA[
+Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.
+]]></description> -->
 
     <depends>com.jetbrains.php</depends>
 
@@ -25,7 +25,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!--suppress PluginXmlValidity -->
-        <postStartupActivity implementation="com.adrianguenter.php_declaration_hints.JsonConfigFileWatcher$StartupActivity"/>
+        <postStartupActivity
+                implementation="com.adrianguenter.php_declaration_hints.JsonConfigFileWatcher$StartupActivity"/>
         <!--suppress PluginXmlValidity -->
         <completion.contributor language="PHP"
                                 implementationClass="com.adrianguenter.php_declaration_hints.MethodCompletionContributor"/>
