@@ -82,13 +82,8 @@ fun getVersion(): String {
 }
 
 fun getDescription(): String {
-    val version = getVersion()
-    val githubUrl = "https://github.com/adrolter/php_declaration_hints-intellij-plugin"
-
     return """
         Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.<br>
-        <br>
-        <a href="$githubUrl/blob/$version/README.md">README</a> | <a href="$githubUrl/blob/$version/LICENSE">LICENSE</a> | <a href="$githubUrl/issues">Issue Tracker</a> | <a href="$githubUrl/discussions">Discussions/Q&A</a> | <a href="$githubUrl">Source Code</a>
         """
 }
 
