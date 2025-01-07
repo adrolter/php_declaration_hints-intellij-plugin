@@ -1,6 +1,7 @@
 package com.adrianguenter.php_declaration_hints;
 
 import com.adrianguenter.php_declaration_hints.config.MethodProviderConfig;
+import com.intellij.application.options.CodeStyle;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.codeInsight.template.Template;
@@ -82,6 +83,7 @@ public class MethodCompletionContributor
                             return;
                         }
 
+                        var phpStyle = CodeStyle.getLanguageSettings(file, PhpLanguage.INSTANCE);
                         var classConfig = config.classes().get(phpClass.getFQN());
 
                         for (var methodProvider : classConfig.methodProviders().entrySet()) {
@@ -180,16 +182,21 @@ public class MethodCompletionContributor
                                             commentText = methodConfig.comment();
                                         }
 
+                                        var paramsOnNewLine = phpStyle.METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE
+                                                && methodConfig.params() != null
+                                                && !methodConfig.params().isEmpty();
+
                                         Template template = templateManager.createTemplate(
                                                 "",
                                                 "",
                                                 String.format(
-                                                        "%s%s%s%s function %s(%s): %s\n{\n%s}",
+                                                        "%s%s%s%s function %s(%s%s): %s\n{\n%s}",
                                                         commentText,
                                                         attributesText,
                                                         accessLevelText,
                                                         staticText,
                                                         methodName,
+                                                        paramsOnNewLine ? "\n" : "",
                                                         paramsText,
                                                         returnTypeText,
                                                         !groupStatementText.isEmpty()
