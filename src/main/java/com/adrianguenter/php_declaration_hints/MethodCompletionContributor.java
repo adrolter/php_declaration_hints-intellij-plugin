@@ -13,14 +13,16 @@ import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ProcessingContext;
+import com.intellij.util.containers.ContainerUtil;
 import com.jetbrains.php.PhpIcons;
 import com.jetbrains.php.lang.PhpLanguage;
 import com.jetbrains.php.lang.documentation.phpdoc.psi.PhpDocComment;
-import com.jetbrains.php.lang.psi.elements.PhpClass;
-import com.jetbrains.php.lang.psi.elements.PhpModifier;
+import com.jetbrains.php.lang.psi.PhpPsiUtil;
+import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.elements.impl.GroupStatementImpl;
 import com.jetbrains.php.lang.psi.elements.impl.MethodImpl;
 import com.jetbrains.php.lang.psi.elements.impl.PhpClassFieldsListImpl;
+import com.jetbrains.php.refactoring.move.constant.PhpMoveFileConstantProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -106,31 +108,25 @@ public class MethodCompletionContributor
 
                             String paramsText;
                             if (methodConfig.params() != null) {
-                                 paramsText = String.join(
+                                paramsText = String.join(
                                         ", ",
                                         methodConfig.params().entrySet().stream().map(
-                                                item -> {
-                                                    var paramName = item.getKey();
-                                                    var paramConfig = item.getValue();
-
-                                                    return String.format(
-                                                            "%s %s$%s%s",
-                                                            paramConfig.type() != null
-                                                                    ? paramConfig.type()
-                                                                    : "mixed",
-                                                            paramConfig.isVariadic()
-                                                                    ? "..."
-                                                                    : "",
-                                                            paramName,
-                                                            paramConfig.defaultValue() != null
-                                                                    ? " = " + paramConfig.defaultValue()
-                                                                    : ""
-                                                    );
-                                                }
-                                        ).toList().toArray(new CharSequence[0])
+                                                item -> String.format(
+                                                        "%s %s$%s%s",
+                                                        item.getValue().type() != null
+                                                                ? item.getValue().type()
+                                                                : "mixed",
+                                                        item.getValue().isVariadic()
+                                                                ? "..."
+                                                                : "",
+                                                        item.getKey(),
+                                                        item.getValue().defaultValue() != null
+                                                                ? " = " + item.getValue().defaultValue()
+                                                                : ""
+                                                )
+                                        ).toList()
                                 );
-                            }
-                            else {
+                            } else {
                                 paramsText = "";
                             }
 
@@ -201,10 +197,39 @@ public class MethodCompletionContributor
                                                                 : "$END$\n"
                                                 )
                                         );
-                                        template.setToShortenLongNames(true);
+                                        /// TODO: Figure out what these do (and why they seem to have no effect)
+//                                        template.setToShortenLongNames(true);
+//                                        template.setToIndent(true);
+                                        ///  TODO: Figure out why `phpClass.findOwnMethodByName(methodName)` is `null` (when method is `null`) without `setToReformat(true)`
                                         template.setToReformat(true);
 
                                         templateManager.startTemplate(editor, template);
+
+                                        /// This should hold the same reference as `method` (unless `method` is `null`)
+                                        var writtenMethod = phpClass.findOwnMethodByName(methodName);
+                                        if (writtenMethod == null) {
+                                            throw new RuntimeException("Method not found after insertion");
+                                        }
+
+                                        try {
+                                            var references = ContainerUtil.union(
+                                                    PhpPsiUtil.findChildrenNonStrict(writtenMethod, ClassReference.class),
+                                                    ContainerUtil.union(
+                                                            PhpPsiUtil.findChildrenNonStrict(writtenMethod, FunctionReference.class),
+                                                            PhpPsiUtil.findChildrenNonStrict(writtenMethod, ConstantReference.class)
+                                                    )
+                                            );
+
+                                            for (var reference : references) {
+                                                PhpMoveFileConstantProcessor.replaceReferenceWithResolvedImport(
+                                                        project,
+                                                        writtenMethod,
+                                                        reference
+                                                );
+                                            }
+                                        } catch (Exception ignored) {
+                                            ///  TODO: Handle/log
+                                        }
                                     });
 
                             resultSet.addElement(PrioritizedLookupElement.withPriority(
