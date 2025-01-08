@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,16 +52,15 @@ final class ConfigRepository {
     ) {
         var phpFilePath = this.getPhpFilePathForJsonConfigFile(jsonConfigFile);
 
-        if (!this.phpFileConfigs.containsKey(phpFilePath)) {
+        if (!this.phpFileConfigs.containsKey(phpFilePath.toString())) {
             return;
         }
 
-        this.phpFileConfigs.remove(phpFilePath);
+        this.phpFileConfigs.remove(phpFilePath.toString());
     }
 
     public void deleteInvalidJsonConfigFiles() {
-        VirtualFile jsonConfigDir = this.virtualFileManager.findFileByNioPath(
-                java.nio.file.Paths.get(this.paths.jsonConfigBasePath));
+        var jsonConfigDir = this.virtualFileManager.findFileByNioPath(this.paths.jsonConfigBasePath);
 
         if (jsonConfigDir == null || !jsonConfigDir.isDirectory()) {
             return;
@@ -90,9 +90,8 @@ final class ConfigRepository {
                 return;
             }
 
-            String phpFilePath = this.getPhpFilePathForJsonConfigFile(jsonConfigFile);
-            VirtualFile phpFile = this.virtualFileManager.findFileByNioPath(
-                    java.nio.file.Paths.get(phpFilePath));
+            Path phpFilePath = this.getPhpFilePathForJsonConfigFile(jsonConfigFile);
+            VirtualFile phpFile = this.virtualFileManager.findFileByNioPath(phpFilePath);
 
             if (phpFile == null || !phpFile.exists()) {
                 try {
@@ -117,22 +116,22 @@ final class ConfigRepository {
         );
     }
 
-    private String getJsonConfigFilePathForPhpFile(
+    private Path getJsonConfigFilePathForPhpFile(
             VirtualFile phpFile
     ) {
-        return this.paths.jsonConfigBasePath + "/" + phpFile.getPath().substring(
+        return this.paths.jsonConfigBasePath.resolve(phpFile.getPath().substring(
                 this.paths.projectBasePathLength + 1
-        ) + ".json";
+        ) + ".json");
     }
 
-    private String getPhpFilePathForJsonConfigFile(
+    private Path getPhpFilePathForJsonConfigFile(
             VirtualFile jsonConfigFile
     ) {
-        return this.paths.projectBasePath + "/" + jsonConfigFile.getPath().substring(
+        return this.paths.projectBasePath.resolve(jsonConfigFile.getPath().substring(
                 this.paths.jsonConfigBasePathLength + 1,
                 /// Remove `.json`
                 jsonConfigFile.getPath().length() - 5
-        );
+        ));
     }
 
     private PhpFileConfig loadJsonConfigFile(
@@ -143,7 +142,7 @@ final class ConfigRepository {
         }
 
         try {
-            String content = new String(jsonFile.contentsToByteArray());
+            var content = new String(jsonFile.contentsToByteArray());
 
 //            Type type = new TypeToken<Map<String, Map<String, String>>>() {}.getType();
             return this.gson.fromJson(content, PhpFileConfig.class);
@@ -156,9 +155,8 @@ final class ConfigRepository {
     private PhpFileConfig loadJsonConfigFileForPhpFile(
             VirtualFile phpFile
     ) {
-        String jsonPath = this.getJsonConfigFilePathForPhpFile(phpFile);
-        VirtualFile jsonFile = this.virtualFileManager.findFileByNioPath(
-                java.nio.file.Paths.get(jsonPath));
+        var jsonPath = this.getJsonConfigFilePathForPhpFile(phpFile);
+        VirtualFile jsonFile = this.virtualFileManager.findFileByNioPath(jsonPath);
 
         if (jsonFile == null || !jsonFile.exists()) {
             return null;

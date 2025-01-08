@@ -142,7 +142,7 @@ public class PhpMethodCompletionContributor
 
                             var returnTypeText = methodConfig.returnType();
 
-                            LookupElementBuilder lookupElementBuilder = LookupElementBuilder
+                            var lookupElementBuilder = LookupElementBuilder
                                     .create(methodName)
                                     .withIcon(PhpIcons.METHOD)
 //                                    .withIcon(PhpIcons.OVERRIDES)
@@ -150,9 +150,8 @@ public class PhpMethodCompletionContributor
                                     .withTailText("(" + shortParamsText + ") {...}", true)
                                     .withTypeText(basename.apply(returnTypeText), true)
                                     .withInsertHandler((insertionContext, lookupElement) -> {
-                                        Editor editor = insertionContext.getEditor();
-                                        Document document = editor.getDocument();
-
+                                        var editor = insertionContext.getEditor();
+                                        var document = editor.getDocument();
                                         var existingDocComment = method != null ? method.getDocComment() : null;
                                         var groupStatementText = getGroupStatementText(method, methodConfig);
 
@@ -204,7 +203,7 @@ public class PhpMethodCompletionContributor
                                                 ).toList()
                                         );
 
-                                        Template template = templateManager.createTemplate(
+                                        var template = templateManager.createTemplate(
                                                 "",
                                                 "",
                                                 String.format(
@@ -308,6 +307,7 @@ public class PhpMethodCompletionContributor
                         if (!groupStatementText.contains("$END$")) {
                             groupStatementText += "$END$\n";
                         }
+
                         return groupStatementText;
                     }
                 }

@@ -7,20 +7,20 @@ import java.util.Objects;
 
 @Service(Service.Level.PROJECT)
 public final class Paths {
-    public final String projectBasePath;
+    public final java.nio.file.Path projectBasePath;
     public final int projectBasePathLength;
-    public final String jsonConfigBasePath;
+    public final java.nio.file.Path jsonConfigBasePath;
     public final int jsonConfigBasePathLength;
 
     public Paths(
             Project project
     ) {
         ///  TODO: Make configurable via settings panel
-        final String relativeJsonConfigDirPath = ".idea/phpDeclarationHints";
+        final var relativeJsonConfigDirPath = ".idea/phpDeclarationHints";
 
-        this.projectBasePath = Objects.requireNonNull(project.getBasePath());
-        this.projectBasePathLength = this.projectBasePath.length();
-        this.jsonConfigBasePath = this.projectBasePath + "/" + relativeJsonConfigDirPath;
-        this.jsonConfigBasePathLength = this.jsonConfigBasePath.length();
+        this.projectBasePath = java.nio.file.Paths.get(Objects.requireNonNull(project.getBasePath()));
+        this.projectBasePathLength = this.projectBasePath.toString().length();
+        this.jsonConfigBasePath = this.projectBasePath.resolve(relativeJsonConfigDirPath);
+        this.jsonConfigBasePathLength = this.jsonConfigBasePath.toString().length();
     }
 }
