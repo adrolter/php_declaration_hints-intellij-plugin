@@ -14,13 +14,13 @@ public final class FileWatcher {
     ) {
         final var configRepository = project.getService(ConfigRepository.class);
 
-        configRepository.deleteInvalidJsonConfigFiles();
-
         project.getMessageBus().connect().subscribe(
                 VirtualFileManager.VFS_CHANGES,
                 new BulkFileListener() {
                     @Override
-                    public void after(@NotNull List<? extends VFileEvent> events) {
+                    public void after(
+                            @NotNull List<? extends VFileEvent> events
+                    ) {
                         for (var event : events) {
                             var file = event.getFile();
                             if (file == null) {
@@ -37,14 +37,5 @@ public final class FileWatcher {
                         }
                     }
                 });
-    }
-
-    public static final class StartupActivity
-            implements com.intellij.openapi.startup.StartupActivity {
-
-        @Override
-        public void runActivity(@NotNull Project project) {
-            new FileWatcher(project);
-        }
     }
 }
