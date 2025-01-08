@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/adrolter/php_declaration_hints-intellij-plugin/blob/main/src/main/resources/config.schema.json",
+    "$id": "https://github.com/adrolter/php_declaration_hints-intellij-plugin/blob/latest/src/main/resources/config.schema.json",
     "title": "PHP File Config",
     "description": "Describes configuration pertaining to a PHP file in the project.",
     "type": "object",

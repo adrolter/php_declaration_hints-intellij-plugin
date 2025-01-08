@@ -9,6 +9,23 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+confirm() {
+    read -p "{$1:-Continue?} (Y/N): " confirm
+
+    case "$confirm" in
+    [yY][eE][sS]|[yY])
+        # Continue
+        ;;
+    [nN][oO]|[nN])
+        exit 1
+        ;;
+    *)
+        echo "Invalid response. Aborting..."
+        exit 2
+        ;;
+    esac
+}
+
 version=$1; shift
 
 if [ -z "$version" ]; then
@@ -29,3 +46,12 @@ cp -a build/distributions/php_declaration_hints-intellij-plugin{,-v${version}}.z
 
 ./gradlew runIde
 
+confirm "Push commits and tag 'v${version}' to GitHub?"
+git push github
+git push github "v${version}"
+
+
+if confirm "Tag 'v${version}' as 'latest' and push to GitHub?"; then
+    git tag latest "v${version}"
+    git push github latest
+fi
