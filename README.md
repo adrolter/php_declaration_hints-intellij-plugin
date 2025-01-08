@@ -1,11 +1,17 @@
 ## PHP Declaration Hints IntelliJ Plugin
 
-Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.
+Provides declaration/implementation completions for PHP class methods, driven by (typically generated) JSON configuration files.
 
-Config files must be written to `<project>/.idea/phpDeclarationHints/<relative-php-file-path>.json`.
+### Config files
+[JSON Schema](src/main/resources/config.schema.json)
 
-E.g. `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Foo/Bar.php.json`
+#### Location
 
+**`<project>/.idea/phpDeclarationHints/<relative-php-file-path>.json`**
+
+E.g.: `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Foo/Bar.php.json`
+
+#### Example
 ```json
 {
     "autoDelete": true,
@@ -26,6 +32,7 @@ E.g. `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Fo
                     "impl": "$result = \\array_sum($a) / $END$;\n\n/** Call biz for important reasons */\nself::biz();\n\nreturn $result;"
                 },
                 "methodB": {
+                    "priority": 1000,
                     "params": {
                         "a": {},
                         "b": {
@@ -40,3 +47,13 @@ E.g. `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Fo
     }
 }
 ```
+
+### TODO
+- [ ] Create `.idea/phpDeclarationHints` directory at startup
+- [ ] Create action for configs garbage collection, and invoke it as a background task at startup
+- [ ] Display error output when `fromJson()` throws (JSON schema validation in catch?)
+- [ ] Purge configs from memoization when their PHP files are closed in the editor
+- [ ] Create reference/example PHP script(s) for config generation
+- [ ] Improve priority handling
+  - https://intellij-support.jetbrains.com/hc/en-us/community/posts/115000646804-Completion-Provider-with-Priority-Sort
+  - https://intellij-support.jetbrains.com/hc/en-us/community/posts/360009877039-Prioritizing-Code-Completion

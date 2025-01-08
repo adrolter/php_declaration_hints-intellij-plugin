@@ -1,6 +1,6 @@
 package com.adrianguenter.php_declaration_hints;
 
-import com.adrianguenter.php_declaration_hints.config.MethodProviderConfig;
+import com.adrianguenter.php_declaration_hints.config.PhpMethodProviderConfig;
 import com.intellij.application.options.CodeStyle;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
@@ -27,9 +27,11 @@ import com.jetbrains.php.refactoring.move.constant.PhpMoveFileConstantProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class MethodCompletionContributor
+import java.util.function.Function;
+
+public class PhpMethodCompletionContributor
         extends CompletionContributor {
-    public MethodCompletionContributor() {
+    public PhpMethodCompletionContributor() {
         this.extend(
                 CompletionType.BASIC,
                 PlatformPatterns.psiElement().withLanguage(PhpLanguage.INSTANCE),
@@ -86,6 +88,14 @@ public class MethodCompletionContributor
                         var phpStyle = CodeStyle.getLanguageSettings(file, PhpLanguage.INSTANCE);
                         var classConfig = config.classes().get(phpClass.getFQN());
 
+                        Function<@NotNull String, String> basename = (@NotNull String fqcn) -> {
+                            int lastSeparatorIdx = fqcn.lastIndexOf("\\");
+
+                            return lastSeparatorIdx != -1
+                                    ? fqcn.substring(lastSeparatorIdx + 1)
+                                    : fqcn;
+                        };
+
                         for (var methodProvider : classConfig.methodProviders().entrySet()) {
                             var methodName = methodProvider.getKey();
                             var methodConfig = methodProvider.getValue();
@@ -94,9 +104,7 @@ public class MethodCompletionContributor
                                 continue;
                             }
 
-                            var accessLevel = methodConfig.accessLevel() != null
-                                    ? methodConfig.accessLevel()
-                                    : PhpModifier.Access.PUBLIC;
+                            var accessLevel = methodConfig.accessLevel();
 
                             if (method != null) {
                                 if (method.isStatic() && !methodConfig.isStatic()) {
@@ -108,29 +116,23 @@ public class MethodCompletionContributor
                                 }
                             }
 
-                            String paramsText;
-                            if (methodConfig.params() != null) {
-                                paramsText = String.join(
-                                        ", ",
-                                        methodConfig.params().entrySet().stream().map(
-                                                item -> String.format(
-                                                        "%s %s$%s%s",
-                                                        item.getValue().type() != null
-                                                                ? item.getValue().type()
-                                                                : "mixed",
-                                                        item.getValue().isVariadic()
-                                                                ? "..."
-                                                                : "",
-                                                        item.getKey(),
-                                                        item.getValue().defaultValue() != null
-                                                                ? " = " + item.getValue().defaultValue()
-                                                                : ""
-                                                )
-                                        ).toList()
-                                );
-                            } else {
-                                paramsText = "";
-                            }
+                            String shortParamsText;
+                            shortParamsText = String.join(
+                                    ", ",
+                                    methodConfig.params().entrySet().stream().map(
+                                            item -> String.format(
+                                                    "%s %s$%s%s",
+                                                    basename.apply(item.getValue().type()),
+                                                    item.getValue().isVariadic()
+                                                            ? "..."
+                                                            : "",
+                                                    item.getKey(),
+                                                    item.getValue().defaultValue() != null
+                                                            ? " = " + item.getValue().defaultValue()
+                                                            : ""
+                                            )
+                                    ).toList()
+                            );
 
                             var accessLevelText = accessLevel.toString();
 
@@ -138,17 +140,16 @@ public class MethodCompletionContributor
                                     ? " static"
                                     : "";
 
-                            var returnTypeText = methodConfig.returnType() != null
-                                    ? methodConfig.returnType()
-                                    : "void";
+                            var returnTypeText = methodConfig.returnType();
 
-                            LookupElementBuilder lookupElement = LookupElementBuilder
+                            LookupElementBuilder lookupElementBuilder = LookupElementBuilder
                                     .create(methodName)
                                     .withIcon(PhpIcons.METHOD)
+//                                    .withIcon(PhpIcons.OVERRIDES)
                                     .withPresentableText(accessLevelText + staticText + " function " + methodName)
-                                    .withTailText("(" + paramsText + ")", true)
-                                    .withTypeText(returnTypeText, true)
-                                    .withInsertHandler((insertionContext, item) -> {
+                                    .withTailText("(" + shortParamsText + ") {...}", true)
+                                    .withTypeText(basename.apply(returnTypeText), true)
+                                    .withInsertHandler((insertionContext, lookupElement) -> {
                                         Editor editor = insertionContext.getEditor();
                                         Document document = editor.getDocument();
 
@@ -183,8 +184,25 @@ public class MethodCompletionContributor
                                         }
 
                                         var paramsOnNewLine = phpStyle.METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE
-                                                && methodConfig.params() != null
                                                 && !methodConfig.params().isEmpty();
+
+                                        String paramsText;
+                                        paramsText = String.join(
+                                                ", ",
+                                                methodConfig.params().entrySet().stream().map(
+                                                        param -> String.format(
+                                                                "%s %s$%s%s",
+                                                                param.getValue().type(),
+                                                                param.getValue().isVariadic()
+                                                                        ? "..."
+                                                                        : "",
+                                                                param.getKey(),
+                                                                param.getValue().defaultValue() != null
+                                                                        ? " = " + param.getValue().defaultValue()
+                                                                        : ""
+                                                        )
+                                                ).toList()
+                                        );
 
                                         Template template = templateManager.createTemplate(
                                                 "",
@@ -204,9 +222,7 @@ public class MethodCompletionContributor
                                                                 : "$END$\n"
                                                 )
                                         );
-                                        /// TODO: Figure out what these do (and why they seem to have no effect)
-//                                        template.setToShortenLongNames(true);
-//                                        template.setToIndent(true);
+                                        ///  TODO: Figure out what template.setToShortenLongNames() and template.setToIndent() do (and why they seem to have no effect)
                                         ///  TODO: Figure out why `phpClass.findOwnMethodByName(methodName)` is `null` (when method is `null`) without `setToReformat(true)`
                                         template.setToReformat(true);
 
@@ -239,10 +255,14 @@ public class MethodCompletionContributor
                                         }
                                     });
 
-                            resultSet.addElement(PrioritizedLookupElement.withPriority(
-                                    lookupElement,
-                                    1000.0
-                            ));
+                            if (methodConfig.priority() != null) {
+                                resultSet.addElement(PrioritizedLookupElement.withPriority(
+                                        lookupElementBuilder,
+                                        methodConfig.priority()
+                                ));
+                            } else {
+                                resultSet.addElement(lookupElementBuilder);
+                            }
                         }
                     }
 
@@ -266,7 +286,7 @@ public class MethodCompletionContributor
 
                     private static @NotNull String getGroupStatementText(
                             MethodImpl method,
-                            MethodProviderConfig methodConfig
+                            PhpMethodProviderConfig methodConfig
                     ) {
                         var methodLastChild = method != null ? method.getLastChild() : null;
                         var existingGroupStatement = methodLastChild instanceof GroupStatementImpl

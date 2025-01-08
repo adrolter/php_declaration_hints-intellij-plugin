@@ -1,10 +1,11 @@
 package com.adrianguenter.php_declaration_hints.config;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public record PhpFunctionParamConfig(
-        @Nullable String type,
-        boolean isVariadic,
+        @NotNull String type,
+        @NotNull Boolean isVariadic,
         @Nullable String defaultValue
 ) {
     public boolean isOptional() {

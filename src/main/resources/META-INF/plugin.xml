@@ -26,9 +26,9 @@ Provides declaration/implementation completions for PHP class methods, driven by
     <extensions defaultExtensionNs="com.intellij">
         <!--suppress PluginXmlValidity -->
         <postStartupActivity
-                implementation="com.adrianguenter.php_declaration_hints.JsonConfigFileWatcher$StartupActivity"/>
+                implementation="com.adrianguenter.php_declaration_hints.FileWatcher$StartupActivity"/>
         <!--suppress PluginXmlValidity -->
         <completion.contributor language="PHP"
-                                implementationClass="com.adrianguenter.php_declaration_hints.MethodCompletionContributor"/>
+                                implementationClass="com.adrianguenter.php_declaration_hints.PhpMethodCompletionContributor"/>
     </extensions>
 </idea-plugin>

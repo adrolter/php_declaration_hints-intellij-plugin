@@ -8,8 +8,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public final class JsonConfigFileWatcher {
-    public JsonConfigFileWatcher(
+public final class FileWatcher {
+    public FileWatcher(
             Project project
     ) {
         final var configRepository = project.getService(ConfigRepository.class);
@@ -44,7 +44,7 @@ public final class JsonConfigFileWatcher {
 
         @Override
         public void runActivity(@NotNull Project project) {
-            new JsonConfigFileWatcher(project);
+            new FileWatcher(project);
         }
     }
 }

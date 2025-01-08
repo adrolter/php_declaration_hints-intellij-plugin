@@ -1,7 +1,8 @@
 package com.adrianguenter.php_declaration_hints;
 
-import com.adrianguenter.php_declaration_hints.config.PhpFileConfig;
+import com.adrianguenter.php_declaration_hints.config.*;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
@@ -20,7 +21,7 @@ final class ConfigRepository {
     private final int projectBasePathLength;
     private final int jsonConfigDirPathLength;
     private final Map<String, PhpFileConfig> phpFileConfigs = new ConcurrentHashMap<>();
-    private final Gson gson = new Gson();
+    private final Gson gson;
     private final String projectBasePath;
     private final VirtualFileManager virtualFileManager;
     private final Project project;
@@ -36,6 +37,13 @@ final class ConfigRepository {
         this.projectBasePathLength = this.projectBasePath.length();
         this.jsonConfigDirPath = this.projectBasePath + "/" + relativeJsonConfigDirPath;
         this.jsonConfigDirPathLength = this.jsonConfigDirPath.length();
+
+        var gsonBuilder = new GsonBuilder();
+        gsonBuilder.registerTypeAdapter(PhpFileConfig.class, new PhpFileConfigDeserializer());
+        gsonBuilder.registerTypeAdapter(PhpClassConfig.class, new PhpClassConfigDeserializer());
+        gsonBuilder.registerTypeAdapter(PhpMethodProviderConfig.class, new PhpMethodProviderConfigDeserializer());
+        gsonBuilder.registerTypeAdapter(PhpFunctionParamConfig.class, new PhpFunctionParamConfigDeserializer());
+        this.gson = gsonBuilder.create();
     }
 
     public @Nullable PhpFileConfig get(

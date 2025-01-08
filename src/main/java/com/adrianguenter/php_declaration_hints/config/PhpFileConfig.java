@@ -1,9 +1,9 @@
 package com.adrianguenter.php_declaration_hints.config;
 
-import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 public record PhpFileConfig(
-        boolean autoDelete,
-        Map<String, PhpClassConfig> classes
+        @NotNull Boolean autoDelete,
+        @NotNull PhpClassConfigMap classes
 ) {
 }

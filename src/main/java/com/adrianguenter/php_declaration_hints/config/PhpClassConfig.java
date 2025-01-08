@@ -1,8 +1,8 @@
 package com.adrianguenter.php_declaration_hints.config;
 
-import java.util.LinkedHashMap;
+import org.jetbrains.annotations.NotNull;
 
 public record PhpClassConfig(
-        LinkedHashMap<String, MethodProviderConfig> methodProviders
+        @NotNull PhpMethodProviderConfigMap methodProviders
 ) {
 }

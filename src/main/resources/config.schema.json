@@ -1,0 +1,113 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/adrolter/php_declaration_hints-intellij-plugin/blob/main/src/main/resources/config.schema.json",
+    "title": "PHP File Config",
+    "description": "Describes configuration pertaining to a PHP file in the project.",
+    "type": "object",
+    "properties": {
+        "autoDelete": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to automatically delete the file when the corresponding PHP file no longer exists."
+        },
+        "classes": {
+            "$ref": "#/definitions/PhpClassConfigMap"
+        }
+    },
+    "additionalProperties": false,
+    "definitions": {
+        "PhpClassMemberAccessLevel": {
+            "enum": [
+                "public",
+                "protected",
+                "private"
+            ]
+        },
+        "PhpFunctionParamConfig": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "default": "mixed"
+                },
+                "isVariadic": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "defaultValue": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PhpFunctionParamConfigMap": {
+            "type": "object",
+            "patternProperties": {
+                "^[a-zA-Z0-9_]+$": {
+                    "$ref": "#/definitions/PhpFunctionParamConfig"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PhpMethodProviderConfig": {
+            "type": "object",
+            "properties": {
+                "isStatic": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "accessLevel": {
+                    "$ref": "#/definitions/PhpClassMemberAccessLevel",
+                    "default": "public"
+                },
+                "returnType": {
+                    "type": "string",
+                    "default": "void"
+                },
+                "params": {
+                    "$ref": "#/definitions/PhpFunctionParamConfigMap"
+                },
+                "impl": {
+                    "type": "string",
+                    "description": "The method implementation. Use $END$ to specify the cursor position after completion."
+                },
+                "comment": {
+                    "type": "string",
+                    "description": "Content to render before the declaration. Can also be used to add attributes."
+                },
+                "priority": {
+                    "type": "number",
+                    "description": "Applies a priority to the LookupElementBuilder. Higher values are displayed first."
+                }
+            },
+            "additionalProperties": false
+        },
+        "PhpMethodProviderConfigMap": {
+            "type": "object",
+            "patternProperties": {
+                "^[a-zA-Z0-9_]+$": {
+                    "$ref": "#/definitions/PhpMethodProviderConfig"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PhpClassConfig": {
+            "type": "object",
+            "properties": {
+                "methodProviders": {
+                    "$ref": "#/definitions/PhpMethodProviderConfigMap"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PhpClassConfigMap": {
+            "type": "object",
+            "patternProperties": {
+                "^\\\\[a-zA-Z0-9_\\\\]+": {
+                    "$ref": "#/definitions/PhpClassConfig"
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}
