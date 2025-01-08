@@ -7,6 +7,9 @@ import kotlin.coroutines.Continuation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Files;
+
 public class Startup
         implements ProjectActivity {
 
@@ -16,8 +19,17 @@ public class Startup
             @NotNull Continuation<? super Unit> continuation
     ) {
         final var configRepository = project.getService(ConfigRepository.class);
+        final var paths = project.getService(Paths.class);
 
-        configRepository.deleteInvalidJsonConfigFiles();
+        if (!Files.exists(paths.jsonConfigBasePath)) {
+            try {
+                Files.createDirectories(paths.jsonConfigBasePath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            configRepository.deleteInvalidJsonConfigFiles();
+        }
 
         new FileWatcher(project);
 

@@ -49,7 +49,6 @@ E.g.: `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/F
 ```
 
 ### TODO
-- [ ] Create `.idea/phpDeclarationHints` directory at startup
 - [ ] Create action for configs garbage collection, and invoke it as a background task at startup
 - [ ] Display error output when `fromJson()` throws (JSON schema validation in catch?)
 - [ ] Purge configs from memoization when their PHP files are closed in the editor
