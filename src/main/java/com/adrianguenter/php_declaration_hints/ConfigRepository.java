@@ -11,32 +11,23 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.PROJECT)
 final class ConfigRepository {
-    public final String jsonConfigDirPath;
-    private final int projectBasePathLength;
-    private final int jsonConfigDirPathLength;
     private final Map<String, PhpFileConfig> phpFileConfigs = new ConcurrentHashMap<>();
     private final Gson gson;
-    private final String projectBasePath;
     private final VirtualFileManager virtualFileManager;
     private final Project project;
+    private final Paths paths;
 
     public ConfigRepository(
             Project project
     ) {
-        ///  TODO: Make configurable via settings panel
-        final String relativeJsonConfigDirPath = ".idea/phpDeclarationHints";
         this.project = project;
+        this.paths = project.getService(Paths.class);
         this.virtualFileManager = VirtualFileManager.getInstance();
-        this.projectBasePath = Objects.requireNonNull(project.getBasePath());
-        this.projectBasePathLength = this.projectBasePath.length();
-        this.jsonConfigDirPath = this.projectBasePath + "/" + relativeJsonConfigDirPath;
-        this.jsonConfigDirPathLength = this.jsonConfigDirPath.length();
 
         var gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(PhpFileConfig.class, new PhpFileConfigDeserializer());
@@ -68,7 +59,8 @@ final class ConfigRepository {
     }
 
     public void deleteInvalidJsonConfigFiles() {
-        VirtualFile jsonConfigDir = this.virtualFileManager.findFileByNioPath(Paths.get(this.jsonConfigDirPath));
+        VirtualFile jsonConfigDir = this.virtualFileManager.findFileByNioPath(
+                java.nio.file.Paths.get(this.paths.jsonConfigBasePath));
 
         if (jsonConfigDir == null || !jsonConfigDir.isDirectory()) {
             return;
@@ -99,7 +91,8 @@ final class ConfigRepository {
             }
 
             String phpFilePath = this.getPhpFilePathForJsonConfigFile(jsonConfigFile);
-            VirtualFile phpFile = this.virtualFileManager.findFileByNioPath(Paths.get(phpFilePath));
+            VirtualFile phpFile = this.virtualFileManager.findFileByNioPath(
+                    java.nio.file.Paths.get(phpFilePath));
 
             if (phpFile == null || !phpFile.exists()) {
                 try {
@@ -127,16 +120,16 @@ final class ConfigRepository {
     private String getJsonConfigFilePathForPhpFile(
             VirtualFile phpFile
     ) {
-        return this.jsonConfigDirPath + "/" + phpFile.getPath().substring(
-                this.projectBasePathLength + 1
+        return this.paths.jsonConfigBasePath + "/" + phpFile.getPath().substring(
+                this.paths.projectBasePathLength + 1
         ) + ".json";
     }
 
     private String getPhpFilePathForJsonConfigFile(
             VirtualFile jsonConfigFile
     ) {
-        return this.projectBasePath + "/" + jsonConfigFile.getPath().substring(
-                this.jsonConfigDirPathLength + 1,
+        return this.paths.projectBasePath + "/" + jsonConfigFile.getPath().substring(
+                this.paths.jsonConfigBasePathLength + 1,
                 /// Remove `.json`
                 jsonConfigFile.getPath().length() - 5
         );
@@ -164,7 +157,8 @@ final class ConfigRepository {
             VirtualFile phpFile
     ) {
         String jsonPath = this.getJsonConfigFilePathForPhpFile(phpFile);
-        VirtualFile jsonFile = this.virtualFileManager.findFileByNioPath(Paths.get(jsonPath));
+        VirtualFile jsonFile = this.virtualFileManager.findFileByNioPath(
+                java.nio.file.Paths.get(jsonPath));
 
         if (jsonFile == null || !jsonFile.exists()) {
             return null;

@@ -12,6 +12,7 @@ public final class FileWatcher {
     public FileWatcher(
             Project project
     ) {
+        final var paths = project.getService(Paths.class);
         final var configRepository = project.getService(ConfigRepository.class);
 
         project.getMessageBus().connect().subscribe(
@@ -28,7 +29,7 @@ public final class FileWatcher {
                             }
 
                             var filePath = file.getPath();
-                            if (!filePath.startsWith(configRepository.jsonConfigDirPath + "/")
+                            if (!filePath.startsWith(paths.jsonConfigBasePath + "/")
                                     || !filePath.endsWith(".php.json")) {
                                 continue;
                             }
