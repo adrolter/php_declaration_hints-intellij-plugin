@@ -1,17 +1,17 @@
-## PHP Declaration Hints IntelliJ Plugin
+# <img src="./src/main/resources/META-INF/pluginIcon.svg" style="max-height: 2.5em; position: relative; bottom: -1em"> PHP Declaration Hints IntelliJ Plugin
 
 Provides declaration/implementation completions for PHP class methods, driven by (typically generated) JSON configuration files.
 
-### Config files
+## Config files
 [JSON Schema](src/main/resources/config.schema.json)
 
-#### Location
+### Location
 
 **`<project>/.idea/phpDeclarationHints/<relative-php-file-path>.json`**
 
 E.g.: `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Foo/Bar.php.json`
 
-#### Example
+### Example
 ```json
 {
     "autoDelete": true,
@@ -48,7 +48,7 @@ E.g.: `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/F
 }
 ```
 
-### TODO
+## TODO
 - [ ] Create action for configs garbage collection, and invoke it as a background task at startup
 - [ ] Display error output when `fromJson()` throws (JSON schema validation in catch?)
 - [ ] Purge configs from memoization when their PHP files are closed in the editor
