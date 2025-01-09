@@ -10,13 +10,14 @@ if [ $# -eq 0 ]; then
 fi
 
 confirm() {
-    read -p "{$1:-Continue?} (Y/N): " confirm
+    read -p "${1:-Continue?} (Y/N): " confirm
 
     case "$confirm" in
     [yY][eE][sS]|[yY])
         # Continue
         ;;
     [nN][oO]|[nN])
+        echo "Canceled."
         exit 1
         ;;
     *)
@@ -44,12 +45,11 @@ export ORG_GRADLE_PROJECT_pluginReleaseVersion="$version"
 
 cp -a build/distributions/php_declaration_hints-intellij-plugin{,-v${version}}.zip
 
-./gradlew runIde
+./gradlew runIde || :
 
 confirm "Push commits and tag 'v${version}' to GitHub?"
 git push github
 git push github "v${version}"
-
 
 if confirm "Tag 'v${version}' as 'latest' and push to GitHub?"; then
     git tag latest "v${version}"
