@@ -11,7 +11,8 @@
             "description": "Whether to automatically delete the file when the corresponding PHP file no longer exists."
         },
         "classes": {
-            "$ref": "#/definitions/PhpClassConfigMap"
+            "$ref": "#/definitions/PhpClassConfigMap",
+            "default": {}
         }
     },
     "additionalProperties": false,
@@ -65,7 +66,8 @@
                     "default": "void"
                 },
                 "params": {
-                    "$ref": "#/definitions/PhpFunctionParamConfigMap"
+                    "$ref": "#/definitions/PhpFunctionParamConfigMap",
+                    "default": {}
                 },
                 "impl": {
                     "type": "string",
@@ -95,7 +97,8 @@
             "type": "object",
             "properties": {
                 "methodProviders": {
-                    "$ref": "#/definitions/PhpMethodProviderConfigMap"
+                    "$ref": "#/definitions/PhpMethodProviderConfigMap",
+                    "default": {}
                 }
             },
             "additionalProperties": false
