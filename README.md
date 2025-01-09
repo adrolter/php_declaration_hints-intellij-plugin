@@ -5,13 +5,14 @@ Provides declaration/implementation completions for PHP class methods, driven by
 > 🔗&nbsp;&nbsp;[View on JetBrains Marketplace](https://plugins.jetbrains.com/plugin/26274-php-declaration-hints)
 
 ## Config files
-[JSON Schema](src/main/resources/config.schema.json)
 
 ### Location
 
 **`<project>/.idea/phpDeclarationHints/<relative-php-file-path>.json`**
 
 E.g.: `<project>/src/Foo/Bar.php` → `<project>/.idea/phpDeclarationHints/src/Foo/Bar.php.json`
+
+### [JSON Schema](src/main/resources/config.schema.json)
 
 ### Example
 ```json
