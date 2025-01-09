@@ -7,13 +7,14 @@ import java.util.Objects;
 
 @Service(Service.Level.PROJECT)
 public final class Paths {
+
     public final java.nio.file.Path projectBasePath;
     public final int projectBasePathLength;
     public final java.nio.file.Path jsonConfigBasePath;
     public final int jsonConfigBasePathLength;
 
     public Paths(
-            Project project
+        Project project
     ) {
         ///  TODO: Make configurable via settings panel
         final var relativeJsonConfigDirPath = ".idea/phpDeclarationHints";

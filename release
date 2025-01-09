@@ -51,7 +51,7 @@ confirm "Push commits and tag 'v${version}' to GitHub?"
 git push github
 git push github "v${version}"
 
-if confirm "Tag 'v${version}' as 'latest' and push to GitHub?"; then
-    git tag latest "v${version}"
-    git push github latest
+if confirm "Tag 'v${version}' as 'latest' and FORCE push to GitHub?"; then
+    git tag --force latest "v${version}"
+    git push --force github latest
 fi

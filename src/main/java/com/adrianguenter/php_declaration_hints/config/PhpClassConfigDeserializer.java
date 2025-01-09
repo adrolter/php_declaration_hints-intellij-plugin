@@ -8,19 +8,20 @@ import com.google.gson.JsonParseException;
 import java.lang.reflect.Type;
 
 public class PhpClassConfigDeserializer
-        implements JsonDeserializer<PhpClassConfig> {
+    implements JsonDeserializer<PhpClassConfig> {
+
     @Override
     public PhpClassConfig deserialize(
-            JsonElement json,
-            Type typeOfT,
-            JsonDeserializationContext context
+        JsonElement json,
+        Type typeOfT,
+        JsonDeserializationContext context
     ) throws JsonParseException {
         var jsonObject = json.getAsJsonObject();
 
         return new PhpClassConfig(
-                jsonObject.has("methodProviders")
-                        ? context.deserialize(jsonObject.get("methodProviders"), PhpMethodProviderConfigMap.class)
-                        : new PhpMethodProviderConfigMap()
+            jsonObject.has("methodProviders")
+                ? context.deserialize(jsonObject.get("methodProviders"), PhpMethodProviderConfigMap.class)
+                : new PhpMethodProviderConfigMap()
         );
     }
 }

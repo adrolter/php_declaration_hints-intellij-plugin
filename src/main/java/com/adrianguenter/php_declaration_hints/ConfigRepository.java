@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.PROJECT)
 final class ConfigRepository {
+
     private final Map<String, PhpFileConfig> phpFileConfigs = new ConcurrentHashMap<>();
     private final Gson gson;
     private final VirtualFileManager virtualFileManager;
@@ -24,7 +25,7 @@ final class ConfigRepository {
     private final Paths paths;
 
     public ConfigRepository(
-            Project project
+        Project project
     ) {
         this.project = project;
         this.paths = project.getService(Paths.class);
@@ -39,16 +40,16 @@ final class ConfigRepository {
     }
 
     public @Nullable PhpFileConfig get(
-            VirtualFile phpFile
+        VirtualFile phpFile
     ) {
         return this.phpFileConfigs.computeIfAbsent(
-                phpFile.getPath(),
-                key -> this.loadJsonConfigFileForPhpFile(phpFile)
+            phpFile.getPath(),
+            key -> this.loadJsonConfigFileForPhpFile(phpFile)
         );
     }
 
     public void invalidateCacheOfJsonConfigFile(
-            VirtualFile jsonConfigFile
+        VirtualFile jsonConfigFile
     ) {
         var phpFilePath = this.getPhpFilePathForJsonConfigFile(jsonConfigFile);
 
@@ -67,8 +68,8 @@ final class ConfigRepository {
         }
 
         RecursiveJsonConfigFileDeletionHandler handleJsonConfigFile = (
-                jsonConfigFile,
-                self
+            jsonConfigFile,
+            self
         ) -> {
             if (jsonConfigFile.isDirectory()) {
                 for (VirtualFile child : jsonConfigFile.getChildren()) {
@@ -78,8 +79,7 @@ final class ConfigRepository {
                 if (jsonConfigFile.getChildren().length == 0) {
                     try {
                         jsonConfigFile.delete(this);
-                    }
-                    catch (Exception ignored) {
+                    } catch (Exception ignored) {
                     }
                 }
 
@@ -107,38 +107,38 @@ final class ConfigRepository {
         };
 
         WriteCommandAction.runWriteCommandAction(
-                this.project,
-                () -> {
-                    for (VirtualFile jsonConfigFile : jsonConfigDir.getChildren()) {
-                        handleJsonConfigFile.call(jsonConfigFile);
-                    }
+            this.project,
+            () -> {
+                for (VirtualFile jsonConfigFile : jsonConfigDir.getChildren()) {
+                    handleJsonConfigFile.call(jsonConfigFile);
                 }
+            }
         );
     }
 
     private Path getJsonConfigFilePathForPhpFile(
-            VirtualFile phpFile
+        VirtualFile phpFile
     ) {
         return this.paths.jsonConfigBasePath.resolve(phpFile.getPath().substring(
-                this.paths.projectBasePathLength + 1
+            this.paths.projectBasePathLength + 1
         ) + ".json");
     }
 
     private Path getPhpFilePathForJsonConfigFile(
-            VirtualFile jsonConfigFile
+        VirtualFile jsonConfigFile
     ) {
         return this.paths.projectBasePath.resolve(jsonConfigFile.getPath().substring(
-                this.paths.jsonConfigBasePathLength + 1,
-                /// Remove `.json`
-                jsonConfigFile.getPath().length() - 5
+            this.paths.jsonConfigBasePathLength + 1,
+            /// Remove `.json`
+            jsonConfigFile.getPath().length() - 5
         ));
     }
 
     private PhpFileConfig loadJsonConfigFile(
-            @NotNull VirtualFile jsonFile
+        @NotNull VirtualFile jsonFile
     ) {
         if (!jsonFile.exists()) {
-            throw new RuntimeException("File does not exist: "+jsonFile.getPath());
+            throw new RuntimeException("File does not exist: " + jsonFile.getPath());
         }
 
         try {
@@ -153,7 +153,7 @@ final class ConfigRepository {
     }
 
     private PhpFileConfig loadJsonConfigFileForPhpFile(
-            VirtualFile phpFile
+        VirtualFile phpFile
     ) {
         var jsonPath = this.getJsonConfigFilePathForPhpFile(phpFile);
         VirtualFile jsonFile = this.virtualFileManager.findFileByNioPath(jsonPath);
@@ -167,6 +167,7 @@ final class ConfigRepository {
 
     @FunctionalInterface
     interface RecursiveJsonConfigFileDeletionHandler {
+
         void apply(VirtualFile t, RecursiveJsonConfigFileDeletionHandler self);
 
         default void call(VirtualFile t) {

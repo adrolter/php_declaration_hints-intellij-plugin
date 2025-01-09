@@ -8,21 +8,22 @@ import com.google.gson.JsonParseException;
 import java.lang.reflect.Type;
 
 public class PhpFileConfigDeserializer
-        implements JsonDeserializer<PhpFileConfig> {
+    implements JsonDeserializer<PhpFileConfig> {
+
     @Override
     public PhpFileConfig deserialize(
-            JsonElement json,
-            Type typeOfT,
-            JsonDeserializationContext context
+        JsonElement json,
+        Type typeOfT,
+        JsonDeserializationContext context
     ) throws JsonParseException {
         var jsonObject = json.getAsJsonObject();
 
         return new PhpFileConfig(
-                jsonObject.has("autoDelete")
-                        && jsonObject.get("autoDelete").getAsBoolean(),
-                jsonObject.has("classes")
-                        ? context.deserialize(jsonObject.get("classes"), PhpClassConfigMap.class)
-                        : new PhpClassConfigMap()
+            jsonObject.has("autoDelete")
+                && jsonObject.get("autoDelete").getAsBoolean(),
+            jsonObject.has("classes")
+                ? context.deserialize(jsonObject.get("classes"), PhpClassConfigMap.class)
+                : new PhpClassConfigMap()
         );
     }
 }

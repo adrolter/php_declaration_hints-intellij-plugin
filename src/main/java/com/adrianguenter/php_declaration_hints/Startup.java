@@ -11,12 +11,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 public class Startup
-        implements ProjectActivity {
+    implements ProjectActivity {
 
     @Override
     public @Nullable Object execute(
-            @NotNull Project project,
-            @NotNull Continuation<? super Unit> continuation
+        @NotNull Project project,
+        @NotNull Continuation<? super Unit> continuation
     ) {
         final var configRepository = project.getService(ConfigRepository.class);
         final var paths = project.getService(Paths.class);

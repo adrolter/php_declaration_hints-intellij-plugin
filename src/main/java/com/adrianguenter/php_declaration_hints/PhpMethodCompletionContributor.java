@@ -4,10 +4,7 @@ import com.adrianguenter.php_declaration_hints.config.PhpMethodProviderConfig;
 import com.intellij.application.options.CodeStyle;
 import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
-import com.intellij.codeInsight.template.Template;
 import com.intellij.codeInsight.template.TemplateManager;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiWhiteSpace;
@@ -30,287 +27,306 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Function;
 
 public class PhpMethodCompletionContributor
-        extends CompletionContributor {
+    extends CompletionContributor {
+
     public PhpMethodCompletionContributor() {
         this.extend(
-                CompletionType.BASIC,
-                PlatformPatterns.psiElement().withLanguage(PhpLanguage.INSTANCE),
-                new CompletionProvider<>() {
-                    @Override
-                    protected void addCompletions(
-                            @NotNull CompletionParameters parameters,
-                            @NotNull ProcessingContext context,
-                            @NotNull CompletionResultSet resultSet
+            CompletionType.BASIC,
+            PlatformPatterns.psiElement().withLanguage(PhpLanguage.INSTANCE),
+            new CompletionProvider<>() {
+                @Override
+                protected void addCompletions(
+                    @NotNull CompletionParameters parameters,
+                    @NotNull ProcessingContext context,
+                    @NotNull CompletionResultSet resultSet
+                ) {
+                    var element = parameters.getOriginalPosition();
+                    if (element == null) {
+                        return;
+                    }
+
+                    var phpClass = PsiTreeUtil.getParentOfType(element, PhpClass.class);
+                    if (phpClass == null) {
+                        return;
+                    }
+
+                    MethodImpl method;
+                    if (element.getParent() instanceof MethodImpl) {
+                        /// We're in a method declaration.
+                        method = (MethodImpl) element.getParent();
+                    } else if (
+                        element instanceof PsiWhiteSpace
+                            && element.getPrevSibling() instanceof MethodImpl
                     ) {
-                        var element = parameters.getOriginalPosition();
-                        if (element == null) {
-                            return;
+                        /// If we're immediately after a method, and…
+                        ///     …it doesn't have a name, then we're in its declaration.
+                        ///     …it is named, then we're declaring a new method.
+                        /// I.e.: `public function <caret>`, but not `public function foo(){} <caret>`
+                        method = ((MethodImpl) element.getPrevSibling()).getNameIdentifier() == null
+                            ? (MethodImpl) element.getPrevSibling()
+                            : null;
+                    } else if (
+                        // @formatter:off
+                        element instanceof PsiWhiteSpace
+                            && element.getPrevSibling() instanceof PhpClassFieldsListImpl
+                            && (
+                                !(element.getPrevSibling().getLastChild() instanceof LeafPsiElement)
+                                    || !((LeafPsiElement) element.getPrevSibling().getLastChild())
+                                        .getElementType().toString().equals("semicolon")
+                            )
+                        // @formatter:on
+                    ) {
+                        ///  We're in a field declaration, so bail.
+                        ///  TODO: Fix `public int $a, <caret>` (should not hint!)
+                        return;
+                    } else if (element.getParent() instanceof PhpClass) {
+                        ///  We're not declaring or defining a member, but we are in a class block.
+                        method = null;
+                    } else {
+                        return;
+                    }
+
+                    var file = element.getContainingFile();
+                    var project = file.getProject();
+                    var configRepository = project.getService(ConfigRepository.class);
+
+                    var config = configRepository.get(file.getVirtualFile());
+                    if (config == null || !config.classes().containsKey(phpClass.getFQN())) {
+                        return;
+                    }
+
+                    Function<@NotNull String, String> basename = (@NotNull String fqcn) -> {
+                        int lastSeparatorIdx = fqcn.lastIndexOf("\\");
+
+                        return lastSeparatorIdx != -1
+                            ? fqcn.substring(lastSeparatorIdx + 1)
+                            : fqcn;
+                    };
+
+                    var classConfig = config.classes().get(phpClass.getFQN());
+                    var templateManager = TemplateManager.getInstance(project);
+                    var phpStyle = CodeStyle.getLanguageSettings(file, PhpLanguage.INSTANCE);
+
+                    for (var methodProvider : classConfig.methodProviders().entrySet()) {
+                        var methodName = methodProvider.getKey();
+                        var methodConfig = methodProvider.getValue();
+
+                        if (phpClass.findOwnMethodByName(methodName) != null) {
+                            continue;
                         }
 
-                        var file = element.getContainingFile();
-                        var project = file.getProject();
-                        var configRepository = project.getService(ConfigRepository.class);
-                        var templateManager = TemplateManager.getInstance(project);
+                        var accessLevel = methodConfig.accessLevel();
 
-                        var phpClass = PsiTreeUtil.getParentOfType(element, PhpClass.class);
-                        if (phpClass == null) {
-                            return;
-                        }
-
-                        MethodImpl method;
-                        if (element.getParent() instanceof MethodImpl) {
-                            method = (MethodImpl) element.getParent();
-                        } else if (element instanceof PsiWhiteSpace && element.getPrevSibling() instanceof MethodImpl) {
-                            /// Capture the method if we're immediately after one that's unnamed.
-                            /// E.g.: `public function <caret>`, but not `public function foo(){} <caret>`
-                            method = ((MethodImpl) element.getPrevSibling()).getNameIdentifier() == null
-                                    ? (MethodImpl) element.getPrevSibling()
-                                    : null;
-                        } else if (
-                                element instanceof PsiWhiteSpace
-                                        && element.getPrevSibling() instanceof PhpClassFieldsListImpl
-                                        && (!(element.getPrevSibling().getLastChild() instanceof LeafPsiElement)
-                                        || !((LeafPsiElement) element.getPrevSibling().getLastChild()).getElementType().toString().equals("semicolon"))
-                        ) {
-                            ///  TODO: Fix `public int $a, <caret>` (should not hint!)
-                            return;
-                        } else if (element.getParent() instanceof PhpClass) {
-                            method = null;
-                        } else {
-                            return;
-                        }
-
-                        var config = configRepository.get(file.getVirtualFile());
-                        if (config == null || !config.classes().containsKey(phpClass.getFQN())) {
-                            return;
-                        }
-
-                        var phpStyle = CodeStyle.getLanguageSettings(file, PhpLanguage.INSTANCE);
-                        var classConfig = config.classes().get(phpClass.getFQN());
-
-                        Function<@NotNull String, String> basename = (@NotNull String fqcn) -> {
-                            int lastSeparatorIdx = fqcn.lastIndexOf("\\");
-
-                            return lastSeparatorIdx != -1
-                                    ? fqcn.substring(lastSeparatorIdx + 1)
-                                    : fqcn;
-                        };
-
-                        for (var methodProvider : classConfig.methodProviders().entrySet()) {
-                            var methodName = methodProvider.getKey();
-                            var methodConfig = methodProvider.getValue();
-
-                            if (phpClass.findOwnMethodByName(methodName) != null) {
+                        if (method != null) {
+                            if (method.isStatic() && !methodConfig.isStatic()) {
                                 continue;
                             }
 
-                            var accessLevel = methodConfig.accessLevel();
-
-                            if (method != null) {
-                                if (method.isStatic() && !methodConfig.isStatic()) {
-                                    continue;
-                                }
-
-                                if (!accessLevel.equals(method.getAccess())) {
-                                    continue;
-                                }
+                            if (!accessLevel.equals(method.getAccess())) {
+                                continue;
                             }
+                        }
 
-                            String shortParamsText;
-                            shortParamsText = String.join(
+                        String shortParamsText;
+                        shortParamsText = String.join(
+                            ", ",
+                            methodConfig.params().entrySet().stream().map(
+                                item -> String.format(
+                                    "%s %s$%s%s",
+                                    basename.apply(item.getValue().type()),
+                                    item.getValue().isVariadic()
+                                        ? "..."
+                                        : "",
+                                    item.getKey(),
+                                    item.getValue().defaultValue() != null
+                                        ? " = " + item.getValue().defaultValue()
+                                        : ""
+                                )
+                            ).toList()
+                        );
+
+                        var accessLevelText = accessLevel.toString();
+
+                        var staticText = methodConfig.isStatic()
+                            ? " static"
+                            : "";
+
+                        var returnTypeText = methodConfig.returnType();
+
+                        var lookupElementBuilder = LookupElementBuilder
+                            .create(methodName)
+                            .withIcon(PhpIcons.METHOD)
+//                                    .withIcon(PhpIcons.OVERRIDES)
+                            .withPresentableText(accessLevelText + staticText + " function " + methodName)
+                            .withTailText("(" + shortParamsText + ") {...}", true)
+                            .withTypeText(basename.apply(returnTypeText), true)
+                            .withInsertHandler((insertionContext, lookupElement) -> {
+                                var editor = insertionContext.getEditor();
+                                var document = editor.getDocument();
+                                var existingDocComment = method != null ? method.getDocComment() : null;
+                                var groupStatementText = getGroupStatementText(method, methodConfig);
+                                var methodTextRange = getTextRange(method, existingDocComment);
+
+                                if (methodTextRange != null) {
+                                    document.deleteString(
+                                        methodTextRange.getStartOffset(),
+                                        methodTextRange.getEndOffset()
+                                    );
+                                    editor.getCaretModel().moveToOffset(methodTextRange.getStartOffset());
+                                } else {
+                                    document.deleteString(
+                                        insertionContext.getStartOffset(),
+                                        insertionContext.getTailOffset()
+                                    );
+                                    editor.getCaretModel().moveToOffset(insertionContext.getStartOffset());
+                                }
+
+                                var attributesText = "";
+                                if (method != null) {
+                                    attributesText = String.join(
+                                        "\n",
+                                        method.getAttributes()
+                                            .stream().map(attr -> "#[" + attr.getText() + "]")
+                                            .toList()
+                                    ) + "\n";
+                                }
+
+                                var commentText = "";
+                                if (existingDocComment != null) {
+                                    commentText = existingDocComment.getText();
+                                } else if (methodConfig.comment() != null) {
+                                    commentText = methodConfig.comment();
+                                }
+
+                                var paramsOnNewLine = phpStyle.METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE
+                                    && !methodConfig.params().isEmpty();
+
+                                String paramsText;
+                                paramsText = String.join(
                                     ", ",
                                     methodConfig.params().entrySet().stream().map(
-                                            item -> String.format(
-                                                    "%s %s$%s%s",
-                                                    basename.apply(item.getValue().type()),
-                                                    item.getValue().isVariadic()
-                                                            ? "..."
-                                                            : "",
-                                                    item.getKey(),
-                                                    item.getValue().defaultValue() != null
-                                                            ? " = " + item.getValue().defaultValue()
-                                                            : ""
-                                            )
+                                        param -> String.format(
+                                            "%s %s$%s%s",
+                                            param.getValue().type(),
+                                            param.getValue().isVariadic()
+                                                ? "..."
+                                                : "",
+                                            param.getKey(),
+                                            param.getValue().defaultValue() != null
+                                                ? " = " + param.getValue().defaultValue()
+                                                : ""
+                                        )
                                     ).toList()
-                            );
+                                );
 
-                            var accessLevelText = accessLevel.toString();
+                                var template = templateManager.createTemplate(
+                                    "",
+                                    "",
+                                    String.format(
+                                        "%s%s%s%s function %s(%s%s): %s\n{\n%s}",
+                                        commentText,
+                                        attributesText,
+                                        accessLevelText,
+                                        staticText,
+                                        methodName,
+                                        paramsOnNewLine ? "\n" : "",
+                                        paramsText,
+                                        returnTypeText,
+                                        !groupStatementText.isEmpty()
+                                            ? groupStatementText
+                                            : "$END$\n"
+                                    )
+                                );
+                                ///  TODO: Figure out what template.setToShortenLongNames() and template.setToIndent() do (and why they seem to have no effect)
+                                ///  TODO: Figure out why `phpClass.findOwnMethodByName(methodName)` is `null` (when method is `null`) without `setToReformat(true)`
+                                template.setToReformat(true);
 
-                            var staticText = methodConfig.isStatic()
-                                    ? " static"
-                                    : "";
+                                templateManager.startTemplate(editor, template);
 
-                            var returnTypeText = methodConfig.returnType();
+                                /// This should hold the same reference as `method` (unless `method` is `null`)
+                                var writtenMethod = phpClass.findOwnMethodByName(methodName);
+                                if (writtenMethod == null) {
+                                    throw new RuntimeException("Method not found after insertion");
+                                }
 
-                            var lookupElementBuilder = LookupElementBuilder
-                                    .create(methodName)
-                                    .withIcon(PhpIcons.METHOD)
-//                                    .withIcon(PhpIcons.OVERRIDES)
-                                    .withPresentableText(accessLevelText + staticText + " function " + methodName)
-                                    .withTailText("(" + shortParamsText + ") {...}", true)
-                                    .withTypeText(basename.apply(returnTypeText), true)
-                                    .withInsertHandler((insertionContext, lookupElement) -> {
-                                        var editor = insertionContext.getEditor();
-                                        var document = editor.getDocument();
-                                        var existingDocComment = method != null ? method.getDocComment() : null;
-                                        var groupStatementText = getGroupStatementText(method, methodConfig);
+                                try {
+                                    var references = ContainerUtil.union(
+                                        PhpPsiUtil.findChildrenNonStrict(writtenMethod, ClassReference.class),
+                                        ContainerUtil.union(
+                                            PhpPsiUtil.findChildrenNonStrict(writtenMethod, FunctionReference.class),
+                                            PhpPsiUtil.findChildrenNonStrict(writtenMethod, ConstantReference.class)
+                                        )
+                                    );
 
-                                        TextRange methodTextRange = getTextRange(method, existingDocComment);
-
-                                        if (methodTextRange != null) {
-                                            document.deleteString(methodTextRange.getStartOffset(), methodTextRange.getEndOffset());
-                                            editor.getCaretModel().moveToOffset(methodTextRange.getStartOffset());
-                                        } else {
-                                            document.deleteString(insertionContext.getStartOffset(), insertionContext.getTailOffset());
-                                            editor.getCaretModel().moveToOffset(insertionContext.getStartOffset());
-                                        }
-
-                                        var attributesText = "";
-                                        if (method != null) {
-                                            attributesText = String.join(
-                                                    "\n",
-                                                    method.getAttributes()
-                                                            .stream().map(attr -> "#[" + attr.getText() + "]")
-                                                            .toList()
-                                            ) + "\n";
-                                        }
-
-                                        var commentText = "";
-                                        if (existingDocComment != null) {
-                                            commentText = existingDocComment.getText();
-                                        } else if (methodConfig.comment() != null) {
-                                            commentText = methodConfig.comment();
-                                        }
-
-                                        var paramsOnNewLine = phpStyle.METHOD_PARAMETERS_LPAREN_ON_NEXT_LINE
-                                                && !methodConfig.params().isEmpty();
-
-                                        String paramsText;
-                                        paramsText = String.join(
-                                                ", ",
-                                                methodConfig.params().entrySet().stream().map(
-                                                        param -> String.format(
-                                                                "%s %s$%s%s",
-                                                                param.getValue().type(),
-                                                                param.getValue().isVariadic()
-                                                                        ? "..."
-                                                                        : "",
-                                                                param.getKey(),
-                                                                param.getValue().defaultValue() != null
-                                                                        ? " = " + param.getValue().defaultValue()
-                                                                        : ""
-                                                        )
-                                                ).toList()
+                                    for (var reference : references) {
+                                        PhpMoveFileConstantProcessor.replaceReferenceWithResolvedImport(
+                                            project,
+                                            writtenMethod,
+                                            reference
                                         );
+                                    }
+                                } catch (Exception ignored) {
+                                    ///  TODO: Handle/log
+                                }
+                            });
 
-                                        var template = templateManager.createTemplate(
-                                                "",
-                                                "",
-                                                String.format(
-                                                        "%s%s%s%s function %s(%s%s): %s\n{\n%s}",
-                                                        commentText,
-                                                        attributesText,
-                                                        accessLevelText,
-                                                        staticText,
-                                                        methodName,
-                                                        paramsOnNewLine ? "\n" : "",
-                                                        paramsText,
-                                                        returnTypeText,
-                                                        !groupStatementText.isEmpty()
-                                                                ? groupStatementText
-                                                                : "$END$\n"
-                                                )
-                                        );
-                                        ///  TODO: Figure out what template.setToShortenLongNames() and template.setToIndent() do (and why they seem to have no effect)
-                                        ///  TODO: Figure out why `phpClass.findOwnMethodByName(methodName)` is `null` (when method is `null`) without `setToReformat(true)`
-                                        template.setToReformat(true);
-
-                                        templateManager.startTemplate(editor, template);
-
-                                        /// This should hold the same reference as `method` (unless `method` is `null`)
-                                        var writtenMethod = phpClass.findOwnMethodByName(methodName);
-                                        if (writtenMethod == null) {
-                                            throw new RuntimeException("Method not found after insertion");
-                                        }
-
-                                        try {
-                                            var references = ContainerUtil.union(
-                                                    PhpPsiUtil.findChildrenNonStrict(writtenMethod, ClassReference.class),
-                                                    ContainerUtil.union(
-                                                            PhpPsiUtil.findChildrenNonStrict(writtenMethod, FunctionReference.class),
-                                                            PhpPsiUtil.findChildrenNonStrict(writtenMethod, ConstantReference.class)
-                                                    )
-                                            );
-
-                                            for (var reference : references) {
-                                                PhpMoveFileConstantProcessor.replaceReferenceWithResolvedImport(
-                                                        project,
-                                                        writtenMethod,
-                                                        reference
-                                                );
-                                            }
-                                        } catch (Exception ignored) {
-                                            ///  TODO: Handle/log
-                                        }
-                                    });
-
-                            if (methodConfig.priority() != null) {
-                                resultSet.addElement(PrioritizedLookupElement.withPriority(
-                                        lookupElementBuilder,
-                                        methodConfig.priority()
-                                ));
-                            } else {
-                                resultSet.addElement(lookupElementBuilder);
-                            }
-                        }
-                    }
-
-                    private static @Nullable TextRange getTextRange(
-                            MethodImpl method,
-                            PhpDocComment existingDocComment
-                    ) {
-                        @Nullable TextRange methodTextRange;
-                        if (method == null) {
-                            methodTextRange = null;
-                        } else if (existingDocComment != null) {
-                            methodTextRange = new TextRange(
-                                    existingDocComment.getTextOffset(),
-                                    method.getTextRange().getEndOffset()
-                            );
+                        if (methodConfig.priority() != null) {
+                            resultSet.addElement(PrioritizedLookupElement.withPriority(
+                                lookupElementBuilder,
+                                methodConfig.priority()
+                            ));
                         } else {
-                            methodTextRange = method.getTextRange();
+                            resultSet.addElement(lookupElementBuilder);
                         }
-                        return methodTextRange;
-                    }
-
-                    private static @NotNull String getGroupStatementText(
-                            MethodImpl method,
-                            PhpMethodProviderConfig methodConfig
-                    ) {
-                        var methodLastChild = method != null ? method.getLastChild() : null;
-                        var existingGroupStatement = methodLastChild instanceof GroupStatementImpl
-                                ? methodLastChild
-                                : null;
-
-                        var groupStatementText = "";
-                        if (existingGroupStatement != null) {
-                            groupStatementText = existingGroupStatement.getText()
-                                    /// Remove braces
-                                    .substring(1, existingGroupStatement.getText().length() - 1)
-                                    .trim();
-                        }
-
-                        if (groupStatementText.isEmpty() && methodConfig.impl() != null) {
-                            groupStatementText = methodConfig.impl();
-                        }
-
-                        if (!groupStatementText.contains("$END$")) {
-                            groupStatementText += "$END$\n";
-                        }
-
-                        return groupStatementText;
                     }
                 }
+
+                private static @Nullable TextRange getTextRange(
+                    MethodImpl method,
+                    PhpDocComment existingDocComment
+                ) {
+                    @Nullable TextRange methodTextRange;
+                    if (method == null) {
+                        methodTextRange = null;
+                    } else if (existingDocComment != null) {
+                        methodTextRange = new TextRange(
+                            existingDocComment.getTextOffset(),
+                            method.getTextRange().getEndOffset()
+                        );
+                    } else {
+                        methodTextRange = method.getTextRange();
+                    }
+                    return methodTextRange;
+                }
+
+                private static @NotNull String getGroupStatementText(
+                    MethodImpl method,
+                    PhpMethodProviderConfig methodConfig
+                ) {
+                    var methodLastChild = method != null ? method.getLastChild() : null;
+                    var existingGroupStatement = methodLastChild instanceof GroupStatementImpl
+                        ? methodLastChild
+                        : null;
+
+                    var groupStatementText = "";
+                    if (existingGroupStatement != null) {
+                        groupStatementText = existingGroupStatement.getText()
+                            /// Remove braces
+                            .substring(1, existingGroupStatement.getText().length() - 1)
+                            .trim();
+                    }
+
+                    if (groupStatementText.isEmpty() && methodConfig.impl() != null) {
+                        groupStatementText = methodConfig.impl();
+                    }
+
+                    if (!groupStatementText.contains("$END$")) {
+                        groupStatementText += "$END$\n";
+                    }
+
+                    return groupStatementText;
+                }
+            }
         );
     }
 }
