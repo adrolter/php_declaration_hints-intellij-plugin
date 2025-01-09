@@ -1,6 +1,8 @@
-# <img src="./src/main/resources/META-INF/pluginIcon.svg" style="max-height: 2.5em; position: relative; bottom: -1em"> PHP Declaration Hints IntelliJ Plugin
+# <sub><img src="./src/main/resources/META-INF/pluginIcon.svg"></sub><sup>PHP Declaration Hints IntelliJ Plugin</sup>
 
 Provides declaration/implementation completions for PHP class methods, driven by (typically generated) JSON configuration files.
+
+> 🔗&nbsp;&nbsp;[View on JetBrains Marketplace](https://plugins.jetbrains.com/plugin/26274-php-declaration-hints)
 
 ## Config files
 [JSON Schema](src/main/resources/config.schema.json)
