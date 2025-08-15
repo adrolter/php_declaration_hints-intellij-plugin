@@ -104,7 +104,7 @@ fun getChangeNotes(): String {
         commandLine(
             "/bin/sh",
             "-c",
-            "git log \"\$(git tag --list | grep -E '^v[0-9]+\\.[0-9]+(\\.[0-9]+)?' |  sort -V | tail -n2 | tr '\\n' ' ' | awk '{print \$1\"..\"\$2}')\"  --no-merges --oneline --pretty=format:\"<li><a href='$githubUrl/commit/%H'>%h</a> %s <i style='color: gray;'>— %an</i></li>\""
+            "git -P log \"\$(git tag --list | grep -E '^v[0-9]+\\.[0-9]+(\\.[0-9]+)?' |  sort -V | tail -n2 | tr '\\n' ' ' | awk '{print \$1\"..\"\$2}')\"  --no-merges --oneline --pretty=format:\"<li><a href='$githubUrl/commit/%H'>%h</a> %s <i style='color: gray;'>— %an</i></li>\""
         )
     }.standardOutput.asText.get().trim()
 }
