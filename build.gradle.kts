@@ -87,7 +87,7 @@ fun getVersion(): String {
 
 fun getDescription(): String {
     return """
-        Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.<br>
+        Provides declaration/implementation completions for PHP class methods, driven by JSON configuration files.
         """
 }
 
